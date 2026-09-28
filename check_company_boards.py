@@ -20,7 +20,6 @@ import re
 import sys
 import time
 import urllib.request
-import dotenv
 from concurrent.futures import ThreadPoolExecutor
 import job_store
 

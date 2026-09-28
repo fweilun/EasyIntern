@@ -15,9 +15,6 @@ import urllib.request
 
 import job_store
 from check_company_boards import KW, location_ok
-from dotenv import load_dotenv
-
-load_dotenv()
 
 LISTINGS_URL = (
     "https://raw.githubusercontent.com/SimplifyJobs/"
