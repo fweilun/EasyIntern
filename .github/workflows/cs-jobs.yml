@@ -1,0 +1,50 @@
+name: CS job alert
+
+on:
+  schedule:
+    # every 30 minutes
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# A run pushes a state commit; overlapping runs would race on it.
+concurrency:
+  group: cs-job-alert
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Watch company career boards
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python check_company_boards.py
+
+      - name: Watch SimplifyJobs aggregator
+        # Still worth running even if the boards step failed on one bad API.
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python check_simplify_jobs.py
+
+      - name: Commit updated state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posted_ids.json seen_company_jobs.json data/job_log.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "Update seen job state"
+            # Another run may have pushed since checkout.
+            git pull --rebase --autostash origin main
+            git push
+          fi
